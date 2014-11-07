@@ -65,7 +65,14 @@ class OptionsHelper
 
     public static function getOption($module_name, $name, $default_value)
     {
-        return \COption::GetOptionString($module_name, $name, $default_value);
+        if (class_exists('\Bitrix\Main\Config\Option'))
+            $result = \Bitrix\Main\Config\Option::get(
+                $module_name, $name, $default_value);
+        else
+            $result = \COption::getOptionString(
+                $module_name, $name, $default_value);
+
+        return $result;
     }
 
 

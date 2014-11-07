@@ -7,6 +7,6 @@ namespace Um\MailTemplate;
 
 interface ITemplateHandler {
 
-    // TODO
+    public function getContent($fields, $template_data);
 
 }
