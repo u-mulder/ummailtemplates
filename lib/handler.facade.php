@@ -4,9 +4,16 @@ namespace Um\MailTemplate;
 class HandlerFacade
 {
 
-    public static function doMethod()
+
+    public static function execute()
     {
-        var_dump("I do too!");
+
+
+
+
     }
+
+    // one more method here
+
 
 }
