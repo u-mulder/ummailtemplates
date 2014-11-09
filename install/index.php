@@ -4,7 +4,8 @@ IncludeModuleLangFile(__FILE__);
 if(class_exists('um_mail_template'))
     return;
 
-class um_mail_template extends CModule {
+class um_mail_template extends CModule
+{
 
     var $MODULE_ID = 'um.mail_template',
         $MODULE_VERSION,
@@ -15,7 +16,8 @@ class um_mail_template extends CModule {
         $PARTNER_URI,
         $install_path;
 
-	function um_mail_template() {
+    function um_mail_template()
+    {
         $arModuleVersion = array();
         $path = str_replace('\\', '/', __FILE__);
         $path = substr($path, 0, strlen($path) - strlen('/index.php'));
@@ -32,25 +34,34 @@ class um_mail_template extends CModule {
     }
 
 
-    function DoInstall() {
+    function DoInstall()
+    {
         global $APPLICATION;
         RegisterModule($this->MODULE_ID);
 
-        // TODO
-        //RegisterModuleDependences('main', 'OnIBlockPropertyBuildList', $this->MODULE_ID, 'DcMailTemplateIBlockProp', 'getUserTypeDescription');
+        RegisterModuleDependences('main', 'OnBeforeEventSend',
+            $this->MODULE_ID, '\Um\MailTemplate\HandlerFacade',
+            'execute');
 
-        // TODO
-        \Bitrix\Main\Config\Option::set($this->MODULE_ID,
-            'tpl_class_name', 'some_def_name');
-        \Bitrix\Main\Config\Option::set($this->MODULE_ID,
-            'tpl_class_path', 'no_path');
+        \Bitrix\Main\Config\Option::set(
+            $this->MODULE_ID,
+            'tpl_class_name',
+            '\Um\MailTemplate\TwigPoweredTemplateHandler'
+        );
+        \Bitrix\Main\Config\Option::set(
+            $this->MODULE_ID,
+            'tpl_class_path',
+            '/bitrix/modules/' . $this->MODULE_ID
+                . '/lib/twig_powered.template.handler.php'
+        );
 
         $APPLICATION->IncludeAdminFile(GetMessage('UMT_INSTALL_TITLE'),
             $this->install_path . '/step.php');
     }
 
 
-    function DoUninstall() {
+    function DoUninstall()
+    {
         UnRegisterModule($this->MODULE_ID);
         //UnRegisterModuleDependences('iblock', 'OnIBlockPropertyBuildList', $this->MODULE_ID, 'DcMailTemplateIBlockProp', 'getUserTypeDescription');   // TODO
         // delete options

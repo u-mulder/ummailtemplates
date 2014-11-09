@@ -8,8 +8,8 @@ $action_path = $APPLICATION->GetCurPage() . '?mid='
     . htmlspecialcharsbx(MODULE_ID) . '&amp;lang=' . LANGUAGE_ID;
 
 $ar_config = array(
-    'tpl_class_name' => array('default' => 'some_default', 'caption' => GetMessage('UMT_OPT_TPL_CLASS_NAME')),
-    'tpl_class_path' => array('default' => '', 'type' => 'select_path', 'caption' => GetMessage('UMT_OPT_TPL_CLASS_PATH'), 'options' => array('form_name' => 'umt_options')),
+    'tpl_class_name' => array('default' => UMT_DEFAULT_CLASS_NAME, 'caption' => GetMessage('UMT_OPT_TPL_CLASS_NAME')),
+    'tpl_class_path' => array('default' => UMT_DEFAULT_CLASS_PATH, 'type' => 'select_path', 'caption' => GetMessage('UMT_OPT_TPL_CLASS_PATH'), 'options' => array('form_name' => 'umt_options')),
 );
 
 if (isset($_POST['do_save'])) {
@@ -36,11 +36,11 @@ echo bitrix_sessid_post();
 $tabControl->BeginNextTab();
 foreach ($ar_config as $name => $data) {?>
     <tr>
-		<td width="40%"><label for="filter_<?=$name?>"><?=$data['caption']?>:</label></td>
-		<td width="60%">
+        <td width="40%"><label for="filter_<?=$name?>"><?=$data['caption']?>:</label></td>
+        <td width="60%">
             <?=\Um\MailTemplate\OptionsHelper::getOptionField($name, $data)?>
         </td>
-	</tr>
+    </tr>
 <?php
 }
 $tabControl->Buttons();?>

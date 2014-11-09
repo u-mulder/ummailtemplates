@@ -1,5 +1,11 @@
 <?php
 define('UMT_MODULE_NAME', 'um.mail_template');
+define('UMT_DEFAULT_CLASS_NAME', '\Um\MailTemplate\TwigPoweredTemplateHandler');
+define(
+    'UMT_DEFAULT_CLASS_PATH',
+    '/bitrix/modules/' . UMT_MODULE_NAME
+        . '/lib/twig_powered.template.handler.php'
+);
 
 $autoloaded_classes = array(
     'Um\MailTemplate\OptionsHelper' => 'lib/options.helper.php',
