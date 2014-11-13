@@ -3,8 +3,6 @@
  * Генерация дополнительного контента
  * писем с помощью шаблонизатора Twig
  *
- * // TODO - add some error checking!
- *
  * @author u_mulder <m264695502@gmail.com>
  */
 namespace Um\MailTemplate;
@@ -18,6 +16,8 @@ class TwigPoweredTemplateHandler implements ITemplateHandler
         TWIG_USED = 'TWIG_USED';
 
     protected
+        $errors = array(),
+        $tpl_allowed_field = '',
         $twig;
 
     public function getContent($fields, $template_data)
@@ -29,6 +29,11 @@ class TwigPoweredTemplateHandler implements ITemplateHandler
         );
 
         if ($this->templatingAllowed($template_data)) {
+            if ($this->tpl_allowed_field) {
+                $result['template_data'][$this->tpl_allowed_field . '_NAME'] = '';
+                $result['template_data'][$this->tpl_allowed_field . '_VALUE'] = '';
+            }
+
             $matches = array();
             preg_match_all(
                 $this->getLoopRegExp(),
@@ -61,17 +66,21 @@ class TwigPoweredTemplateHandler implements ITemplateHandler
                     }
                 }
                 if (!empty($templates)) {
-                    $this->initTemplateEngine($templates);
-                    foreach ($templates as $tpl)
-                        $result['template_data']['MESSAGE'] = preg_replace(
-                            $tpl['loop_replace_regexp'],
-                            $this->getRenderedBlock($tpl['tpl_name'],
-                                $arguments[$tpl['tpl_name']]),
-                            $result['template_data']['MESSAGE']
-                        );
+                    if ($this->initTemplateEngine($templates)) {
+                        foreach ($templates as $tpl) {
+                            $result['template_data']['MESSAGE'] = preg_replace(
+                                $tpl['loop_replace_regexp'],
+                                $this->getRenderedBlock($tpl['tpl_name'],
+                                    $arguments[$tpl['tpl_name']]),
+                                $result['template_data']['MESSAGE']
+                            );
+                        }
+                    } else {
+                        $result['errors'] = $this->errors;
+                    }
                 }
             } else {
-                // what to do? it means there are no twig data or it can be misunderstood by regexp
+                // Nothing found or broken regexp. Skip
             }
         }
 
@@ -81,12 +90,20 @@ class TwigPoweredTemplateHandler implements ITemplateHandler
 
     protected function templatingAllowed($template_data)
     {
-        return (isset($template_data['FIELD1_NAME'])
+        $result = false;
+        if (isset($template_data['FIELD1_NAME'])
             && $template_data['FIELD1_NAME'] == self::TWIG_USED
-            && (bool)$template_data['FIELD1_VALUE'])
-            || (isset($template_data['FIELD2_NAME'])
+            && (bool)$template_data['FIELD1_VALUE']) {
+            $result = true;
+            $this->tpl_allowed_field = 'FIELD1';
+        } elseif (isset($template_data['FIELD2_NAME'])
             && $template_data['FIELD2_NAME'] == self::TWIG_USED
-            && (bool)$template_data['FIELD2_VALUE']);
+            && (bool)$template_data['FIELD2_VALUE']) {
+            $result = true;
+            $this->tpl_allowed_field = 'FIELD2';
+        }
+
+        return $result;
     }
 
 
@@ -109,21 +126,36 @@ class TwigPoweredTemplateHandler implements ITemplateHandler
 
     protected function initTemplateEngine($templates)
     {
-        // assuming twig is always here // TODO
-        require_once $_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/'
+        $result = false;
+
+        $engine_path = $_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/'
             . UMT_MODULE_NAME . '/lib/template_engines/Twig/Autoloader.php';
-        \Twig_Autoloader::register();
+        if (file_exists($engine_path)
+            && is_file($engine_path)
+            && is_readable($engine_path)) {
+            require_once $engine_path;
+            /**
+             * Конечно в файле может находиться и
+             * не Twig но это уже не моя проблема
+             */
+            \Twig_Autoloader::register();
 
-        $loader = new \Twig_Loader_Array(array_reduce(
-            $templates,
-            function ($t, $v) {
-                $t[$v['tpl_name'] . self::TEMPLATE_EXTENSION] = $v['tpl_content'];
+            $loader = new \Twig_Loader_Array(array_reduce(
+                $templates,
+                function ($t, $v) {
+                    $t[$v['tpl_name'] . self::TEMPLATE_EXTENSION] = $v['tpl_content'];
 
-                return $t;
-            },
-            array()
-        ));
-        $this->twig = new \Twig_Environment($loader);
+                    return $t;
+                },
+                array()
+            ));
+            $this->twig = new \Twig_Environment($loader);
+            $result = true;
+        } else {
+            $this->errors[] = 'NO_TPL_ENGINE_FILE';
+        }
+
+        return $result;
     }
 
 
@@ -131,6 +163,12 @@ class TwigPoweredTemplateHandler implements ITemplateHandler
     {
         $name = trim($name);
         return sprintf(self::LOOP_REPLACE_BLOCK_NAME, $name);
+    }
+
+
+    protected function unsetTemplatingField()
+    {
+        return true;
     }
 
 }

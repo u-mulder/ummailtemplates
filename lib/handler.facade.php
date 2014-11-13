@@ -1,12 +1,12 @@
 <?php
 namespace Um\MailTemplate;
+\IncludeModuleLangFile(__FILE__);
 
 class HandlerFacade
 {
 
     const
-        SEVERITY_LEVEL = 'ERROR',
-        AUDIT_TYPE = 'UMT_INSTANTIATION';
+        SEVERITY_LEVEL = 'ERROR';
 
     protected static
         $instantiation_error = '',
@@ -50,45 +50,60 @@ class HandlerFacade
         self::setTemplateHandler();
         if (is_object(self::$template_handler)
             && self::$template_handler instanceof ITemplateHandler) {
-            $errors = array();
             $res = self::$template_handler->getContent(
                 $fields, $template_data);
-            if (empty($errors)) {
+            if (empty($res['errors'])) {
                 $fields = $res['fields'];
                 $template_data = $res['template_data'];
                 $result = true;
             } else {
-                self::_logError(GetMessage(
-                    'TPL_HANDLER_PROC_ERROR',
-                    array('#EVENT#' => self::_getEventName($template_data))
-                ));
+                $errors = array_reduce(
+                    $res['errors'],
+                    function ($t, $v) {
+                        $t[] = GetMessage($v);
+
+                        return $t;
+                    },
+                    array()
+                );
+
+                self::_logError(
+                    GetMessage(
+                        'TPL_HANDLER_PROC_ERROR',
+                        array('#EVENT#' => self::_getEventName($template_data))
+                    ),
+                    GetMessage(
+                        'TPL_HANDLER_PROC_ERROR_DESCR',
+                        array('#ERRORS#' => implode(', ', $errors))
+                    )
+                );
             }
         } else {
-            if (!self::$template_handler instanceof ITemplateHandler)
+            if (empty(self::$instantiation_error)
+                && !self::$template_handler instanceof ITemplateHandler)
                 self::$instantiation_error = 'INTERFACE_NOT_SUPPORTED';
 
-            self::_logError(GetMessage(
-                'TPL_HANDLER_INST_ERROR',
-                array('#EVENT#' => self::_getEventName($template_data))
-            ));
+            self::_logError(
+                GetMessage(
+                    'TPL_HANDLER_INST_ERROR',
+                    array('#EVENT#' => self::_getEventName($template_data))
+                ),
+                GetMessage(self::$instantiation_error)
+            );
         }
 
         return $result;
     }
 
 
-    protected static function _logError($event_name)    // TODO - test this!
+    protected static function _logError($event_name, $description)
     {
-        $description = isset(self::$instantiation_error)
-            && !empty(self::$instantiation_error)?
-            self::$instantiation_error : 'NO_ERROR_DESCRIPTION';
-
         \CEventLog::Log(
             self::SEVERITY_LEVEL,
-            self::AUDIT_TYPE,
+            GetMessage('UMT_EVENT_LOG_AUDIT_TYPE'),
             \UMT_MODULE_NAME,
             $event_name,
-            GetMessage($description),
+            $description,
             defined('\SITE_ID')? \SITE_ID : false
         );
     }
